@@ -1,72 +1,65 @@
-# Estructura del repositorio:
+import PyPDF2
+import pandas as pd
+import tabula
+import tkinter as tk
+from tkinter import filedialog, messagebox
+from pathlib import Path
 
-pdf_converter/
-│
-├── README.md
-├── requirements.txt
-├── pdf_converter.py
-└── .gitignore
+class PDFToExcelConverter:
+    def __init__(self):
+        self.root = tk.Tk()
+        self.root.title("PDF to Excel Converter")
+        self.root.geometry("400x200")
+        self.setup_ui()
 
-# Contenido de requirements.txt:
-PyPDF2==3.0.1
-pandas==2.0.0
-tabula-py==2.9.0
+    def setup_ui(self):
+        # Create and pack widgets
+        title_label = tk.Label(self.root, text="PDF to Excel Converter", font=("Arial", 14, "bold"))
+        title_label.pack(pady=10)
 
-# Contenido de .gitignore:
-__pycache__/
-*.pyc
-*.pdf
-*.xlsx
-venv/
-.env    
+        select_button = tk.Button(self.root, text="Select PDF File", command=self.convert_pdf)
+        select_button.pack(pady=20)
 
+        self.status_label = tk.Label(self.root, text="")
+        self.status_label.pack(pady=10)
 
-# Conversor PDF a Excel
+    def convert_pdf(self):
+        # Open file dialog
+        pdf_file = filedialog.askopenfilename(
+            title="Select PDF File",
+            filetypes=[("PDF files", "*.pdf")]
+        )
+        
+        if not pdf_file:
+            return
 
-Una aplicación simple para convertir archivos PDF a formato Excel.
+        try:
+            # Update status
+            self.status_label.config(text="Converting... Please wait")
+            self.root.update()
 
-## Requisitos previos
-- Python 3.7 o superior
-- Java Runtime Environment (JRE)
+            # Read tables from PDF
+            tables = tabula.read_pdf(pdf_file, pages='all')
+            
+            # Create output filename
+            output_file = Path(pdf_file).with_suffix('.xlsx')
+            
+            # Create Excel writer object
+            with pd.ExcelWriter(output_file) as writer:
+                # Write each table to a different worksheet
+                for i, table in enumerate(tables):
+                    table.to_excel(writer, sheet_name=f'Sheet{i+1}', index=False)
 
-## Instalación
+            self.status_label.config(text="Conversion completed successfully!")
+            messagebox.showinfo("Success", f"File saved as: {output_file}")
 
-1. Clona el repositorio:
-```bash
-git clone https://github.com/tu-usuario/pdf-to-excel-converter.git
-cd pdf-to-excel-converter
-```
+        except Exception as e:
+            self.status_label.config(text="Error during conversion")
+            messagebox.showerror("Error", f"An error occurred: {str(e)}")
 
-2. Crea un entorno virtual (opcional pero recomendado):
-```bash
-python -m venv venv
-# En Windows:
-venv\Scripts\activate
-# En macOS/Linux:
-source venv/bin/activate
-```
+    def run(self):
+        self.root.mainloop()
 
-3. Instala las dependencias:
-```bash
-pip install -r requirements.txt
-```
-
-## Uso
-
-1. Ejecuta el script:
-```bash
-python pdf_converter.py
-```
-
-2. Haz clic en "Select PDF File"
-3. Selecciona tu archivo PDF
-4. El archivo Excel se guardará en la misma ubicación que el PDF
-
-## Características
-- Interfaz gráfica simple
-- Soporte para múltiples páginas
-- Preserva la estructura de las tablas
-- Manejo de errores con retroalimentación al usuario
-
-## Contribuir
-Las contribuciones son bienvenidas. Por favor, abre un issue primero para discutir los cambios que te gustaría hacer.
+if __name__ == "__main__":
+    app = PDFToExcelConverter()
+    app.run()
